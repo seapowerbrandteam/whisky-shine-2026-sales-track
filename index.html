@@ -580,28 +580,33 @@
             // Auth Form Submission
             document.getElementById('form-auth').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const pass = document.getElementById('input-pass').value.trim();
-                const name = document.getElementById('input-name').value.trim();
+                try {
+                    const pass = document.getElementById('input-pass').value.trim();
+                    const name = document.getElementById('input-name').value.trim();
 
-                if (pass !== '9875321') {
-                    showToast('Incorrect password / 密碼錯誤!');
-                    return;
+                    if (pass !== '9875321') {
+                        showToast('Incorrect password / 密碼錯誤!');
+                        return;
+                    }
+
+                    if (!name) {
+                        showToast('Please enter your name / 請輸入名字');
+                        return;
+                    }
+
+                    currentUser = name;
+                    document.getElementById('display-user-name').innerText = name;
+                    document.getElementById('user-badge').classList.remove('hidden');
+                    document.getElementById('user-badge').classList.add('flex');
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('pos-screen').classList.remove('hidden');
+                    document.getElementById('btn-export').classList.remove('hidden');
+
+                    showToast(`Welcome ${name}!`);
+                } catch (err) {
+                    console.error("Login Error:", err);
+                    showToast('Login error: ' + err.message);
                 }
-
-                if (!name) {
-                    showToast('Please enter your name / 請輸入名字');
-                    return;
-                }
-
-                currentUser = name;
-                document.getElementById('display-user-name').innerText = name;
-                document.getElementById('user-badge').classList.remove('hidden');
-                document.getElementById('user-badge').classList.add('flex');
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('pos-screen').classList.remove('hidden');
-                document.getElementById('btn-export').classList.remove('hidden');
-
-                showToast(`Welcome ${name}!`);
             });
 
             // Language Toggle
