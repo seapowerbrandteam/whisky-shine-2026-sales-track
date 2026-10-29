@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Whisky Event POS Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .touch-btn { min-height: 48px; min-width: 48px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-red-500 selection:text-white">
+
+    <!-- App Container -->
+    <div id="app" class="flex-1 flex flex-col max-w-4xl w-full mx-auto pb-8">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-red-200 sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-red-700 text-white rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-wine-glass text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-red-900 leading-tight" id="header-title">Whisky Event Tracker</h1>
+                    <span id="user-badge" class="text-xs font-semibold text-slate-500 hidden flex items-center mt-0.5">
+                        <i class="fa-solid fa-user-check text-red-600 mr-1.5"></i><span id="display-user-name"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- Language Selector -->
+                <button id="btn-lang" class="bg-red-50 hover:bg-red-100 border border-red-300 px-3.5 py-2 rounded-xl text-xs font-bold text-red-700 transition touch-btn flex items-center shadow-sm">
+                    繁體中文
+                </button>
+                <!-- Export Excel Button -->
+                <button id="btn-export" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md touch-btn">
+                    <i class="fa-solid fa-file-excel text-sm"></i>
+                    <span data-i18n="exportReport">Export Report</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 sm:p-5 flex flex-col">
+
+            <!-- 1. LOGIN / AUTH MODAL -->
+            <div id="auth-screen" class="my-auto max-w-md w-full mx-auto bg-white border border-red-100 p-7 rounded-3xl shadow-xl">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                        <i class="fa-solid fa-lock text-red-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900" data-i18n="accessTitle">Event Access Required</h2>
+                    <p class="text-sm text-slate-500 mt-1" data-i18n="accessSubtitle">Enter password and your name to log sales.</p>
+                </div>
+
+                <form id="form-auth" class="space-y-5" onsubmit="return false;">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5" data-i18n="lblPassword">Access Password</label>
+                        <input type="password" id="input-pass" placeholder="•••••••" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 text-center tracking-widest text-xl font-bold shadow-sm" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5" data-i18n="lblUserName">Your Name / Staff ID</label>
+                        <input type="text" id="input-name" placeholder="e.g. Alex" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3.5 text-slate-900 text-base font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm" required />
+                    </div>
+                    <button type="submit" id="btn-login" class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-4 rounded-xl transition shadow-lg text-base touch-btn">
+                        <span data-i18n="btnLogin">Enter System</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2. MAIN POS INTERFACE -->
+            <div id="pos-screen" class="hidden flex-1 flex flex-col space-y-5">
+
+                <!-- FILTERS SECTION (BUTTON PILLS) -->
+                <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                        <span class="flex items-center"><i class="fa-solid fa-filter text-red-600 mr-1.5 text-sm"></i> <span data-i18n="filterTitle">Product Filter</span></span>
+                        <button id="btn-reset-filters" class="text-red-600 hover:text-red-800 font-bold hidden text-xs" data-i18n="resetFilters">Reset Filters</button>
+                    </div>
+
+                    <!-- Filter 1: Country Buttons -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-2" data-i18n="lblCountry">Country</label>
+                        <div id="country-pills" class="flex flex-wrap gap-2">
+                            <!-- Country pills dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Filter 2: Brand Buttons -->
+                    <div id="brand-container">
+                        <label class="block text-xs font-bold text-slate-600 mb-2" data-i18n="lblBrand">Brand</label>
+                        <div id="brand-pills" class="flex flex-wrap gap-2">
+                            <!-- Brand pills dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="relative pt-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-5 text-slate-400 text-sm"></i>
+                        <input type="text" id="input-search" placeholder="Search Code or Product Name..." class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm">
+                    </div>
+                </section>
+
+                <!-- PRODUCT LIST -->
+                <section class="flex-1 space-y-3.5">
+                    <div class="flex items-center justify-between px-1">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider" data-i18n="productList">Product Catalog</span>
+                        <span id="product-count" class="text-xs bg-red-100 text-red-800 font-extrabold px-2.5 py-1 rounded-full border border-red-200">0 items</span>
+                    </div>
+
+                    <div id="product-list-container" class="space-y-3.5">
+                        <!-- Products will be injected here dynamically -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL 1: RECORD TRANSACTION MODAL -->
+    <div id="modal-sale" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white border border-slate-200 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-200">
+            <div class="flex justify-between items-start border-b border-slate-100 pb-3.5">
+                <div>
+                    <span id="modal-sale-code" class="text-xs font-mono font-bold bg-red-100 text-red-800 px-2.5 py-1 rounded-md border border-red-200">CODE</span>
+                    <h3 id="modal-sale-title" class="text-lg font-bold text-slate-900 mt-2 leading-snug">Product Title</h3>
+                </div>
+                <button onclick="closeSaleModal()" class="text-slate-400 hover:text-slate-700 p-1.5 touch-btn">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Prices Summary -->
+            <div class="grid grid-cols-2 gap-3 bg-red-50/60 p-3.5 rounded-2xl border border-red-100 text-sm">
+                <div>
+                    <span class="text-xs text-slate-500 font-semibold block" data-i18n="glassPrice">Glass Price (15ml):</span>
+                    <span id="modal-sale-glass-price" class="font-extrabold text-red-700 text-base">MOP 0</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 font-semibold block" data-i18n="bottlePrice">Bottle Price:</span>
+                    <span id="modal-sale-bottle-price" class="font-extrabold text-red-700 text-base">MOP 0</span>
+                </div>
+            </div>
+
+            <!-- Transaction Type Options -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2" data-i18n="selectType">Select Transaction Type</label>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button type="button" onclick="selectSaleType('glass')" id="type-glass" class="sale-type-btn touch-btn border-2 border-slate-200 bg-slate-50 hover:bg-red-50 p-3.5 rounded-2xl text-left flex flex-col justify-between transition shadow-sm">
+                        <span class="text-sm font-bold text-slate-900"><i class="fa-solid fa-glass-whiskey text-red-600 mr-1.5 text-base"></i> <span data-i18n="typeGlass">1 Glass</span></span>
+                        <span class="text-xs text-slate-500 font-medium mt-1">Paid Glass</span>
+                    </button>
+
+                    <button type="button" onclick="selectSaleType('bottle')" id="type-bottle" class="sale-type-btn touch-btn border-2 border-slate-200 bg-slate-50 hover:bg-red-50 p-3.5 rounded-2xl text-left flex flex-col justify-between transition shadow-sm">
+                        <span class="text-sm font-bold text-slate-900"><i class="fa-solid fa-bottle-wine text-emerald-600 mr-1.5 text-base"></i> <span data-i18n="typeBottle">1 Bottle</span></span>
+                        <span class="text-xs text-slate-500 font-medium mt-1">Paid Bottle</span>
+                    </button>
+
+                    <button type="button" onclick="selectSaleType('free_glass')" id="type-free_glass" class="sale-type-btn touch-btn border-2 border-slate-200 bg-slate-50 hover:bg-red-50 p-3.5 rounded-2xl text-left flex flex-col justify-between transition shadow-sm">
+                        <span class="text-sm font-bold text-red-700"><i class="fa-solid fa-gift text-red-600 mr-1.5 text-base"></i> <span data-i18n="typeFreeGlass">Free Glass</span></span>
+                        <span class="text-xs text-slate-500 font-medium mt-1">Complimentary</span>
+                    </button>
+
+                    <button type="button" onclick="selectSaleType('free_bottle')" id="type-free_bottle" class="sale-type-btn touch-btn border-2 border-slate-200 bg-slate-50 hover:bg-red-50 p-3.5 rounded-2xl text-left flex flex-col justify-between transition shadow-sm">
+                        <span class="text-sm font-bold text-emerald-700"><i class="fa-solid fa-wine-bottle text-emerald-600 mr-1.5 text-base"></i> <span data-i18n="typeFreeBottle">Free Bottle</span></span>
+                        <span class="text-xs text-slate-500 font-medium mt-1">Complimentary</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quantity Selector -->
+            <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl p-2 px-4 shadow-sm">
+                <span class="text-sm font-bold text-slate-700" data-i18n="qty">Quantity</span>
+                <div class="flex items-center space-x-3">
+                    <button type="button" onclick="adjustModalQty(-1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 font-bold text-lg flex items-center justify-center shadow-sm">-</button>
+                    <span id="modal-sale-qty" class="text-lg font-extrabold text-red-700 w-8 text-center">1</span>
+                    <button type="button" onclick="adjustModalQty(1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 font-bold text-lg flex items-center justify-center shadow-sm">+</button>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="btn-confirm-sale" onclick="submitSaleRecord()" class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-4 rounded-2xl transition shadow-lg text-base touch-btn flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-check text-lg"></i>
+                <span data-i18n="btnConfirmSale">Confirm Log Entry</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ITEM LOG & VOID MANAGEMENT -->
+    <div id="modal-history" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white border border-slate-200 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[85vh] flex flex-col space-y-4">
+            <div class="flex justify-between items-start border-b border-slate-100 pb-3.5">
+                <div>
+                    <h3 id="modal-hist-title" class="text-lg font-bold text-slate-900">Item Sales Log</h3>
+                    <p id="modal-hist-subtitle" class="text-xs text-slate-500 font-medium mt-0.5">Manage and void erroneous entries</p>
+                </div>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-700 p-1.5 touch-btn">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Log list container -->
+            <div id="modal-hist-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1 no-scrollbar my-2 min-h-[200px]">
+                <!-- Log entries dynamically injected -->
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 text-center">
+                <button onclick="closeHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-sm">
+                    <span data-i18n="close">Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI TOAST MESSAGES -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl z-50 hidden flex items-center space-x-2 border border-slate-700">
+        <i class="fa-solid fa-circle-info text-red-400 text-base"></i>
+        <span id="toast-msg">Message</span>
+    </div>
+
+    <!-- FIREBASE MODULE & SCRIPT LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // APP DATA MATRIX FROM PROVIDED IMAGE
+        const WHISKY_DATA = [
+            { id: 1, country: "Scotland", brand: "Auchentoshan", code: "SWAUCTWQT", descEn: "Auchentoshan Three Wood Single Malt Whisky", descZh: "歐肯特軒三桶單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 410 },
+            { id: 2, country: "Scotland", brand: "Auchentoshan", code: "SWAUC12QT", descEn: "Auchentoshan 12 Year Old Single Malt Whisky", descZh: "歐肯特軒12年單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 320 },
+            { id: 3, country: "Scotland", brand: "Auchentoshan", code: "SMAUC18QT", descEn: "Auchentoshan 18 Year Old Single Malt Whisky", descZh: "歐肯特軒18年單一麥芽威士忌", vol: "15ml", glassPrice: 50, bottleVal: 840 },
+            { id: 4, country: "Scotland", brand: "Benriach", code: "SWBTOTS10YOQT", descEn: "Benriach The Original Ten 10YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克10年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 388 },
+            { id: 5, country: "Scotland", brand: "Benriach", code: "SWBTSTSQT", descEn: "Benriach The Smoky Ten Speyside 10YO Single Malt Scotch Whisky (Qt.)", descZh: "班瑞克10年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 388 },
+            { id: 6, country: "Scotland", brand: "Benriach", code: "SWBTST12YOQT", descEn: "Benriach The Smoky Twelve 12YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克12年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
+            { id: 7, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR18QT", descEn: "Glen Grant 18 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠18年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 50, bottleVal: 620 },
+            { id: 8, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR21QT", descEn: "Glen Grant 21 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠21年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 100, bottleVal: 1600 },
+            { id: 9, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR801602QT-06", descEn: "Glen Grant Private Cask (Macau 24 Limited Edition) Qt.", descZh: "格蘭冠2006年原桶單一麥芽威士忌80160-澳門2024特別版 (大號)", vol: "15ml", glassPrice: 100, bottleVal: 1500 },
+            { id: 10, country: "Scotland", brand: "Glenfarclas", code: "SMGLE25QTXX", descEn: "Glenfarclas 25 Year Old Single Malt Whisky", descZh: "格蘭花格25年單一麥芽威士忌", vol: "15ml", glassPrice: 100, bottleVal: 1400 },
+            { id: 11, country: "Japan", brand: "Nikka", code: "SWNIKFBHL", descEn: "Nikka From the Barrel Whisky", descZh: "日果Nikka From the Barrel威士忌", vol: "15ml", glassPrice: 25, bottleVal: 260 },
+            { id: 12, country: "Japan", brand: "Taketsuru", code: "SMTAKPMQT", descEn: "Taketsuru Pure Malt Whisky", descZh: "竹鶴純麥威士忌", vol: "15ml", glassPrice: 25, bottleVal: 420 },
+            { id: 13, country: "Japan", brand: "Yoichi", code: "SMYOISMQT", descEn: "Yoichi Single Malt Whisky", descZh: "余市單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 450 },
+            { id: 14, country: "Japan", brand: "Yoichi", code: "SMYOI10QT", descEn: "Yoichi 10 Year Old Single Malt Whisky", descZh: "余市10年單一麥芽威士忌", vol: "15ml", glassPrice: 50, bottleVal: 700 },
+            { id: 15, country: "Japan", brand: "Miyagikyo", code: "SMMIYSMQT", descEn: "Miyagikyo Single Malt Whisky", descZh: "宮城峽單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 420 },
+            { id: 16, country: "Japan", brand: "Suntory Hibiki", code: "SWHIBABW100QT", descEn: "Hibiki Anniversary Blend Whisky (100th Anniversary)", descZh: "響週年紀念調和威士忌(100週年)", vol: "15ml", glassPrice: 0, bottleVal: 5300 },
+            { id: 17, country: "Japan", brand: "Suntory Hibiki", code: "SWHIBIJHQT", descEn: "Hibiki Japanese Harmony Whisky", descZh: "響日本和諧威士忌", vol: "15ml", glassPrice: 50, bottleVal: 680 },
+            { id: 18, country: "Japan", brand: "Suntory Hakushu", code: "SWHAKDRQT", descEn: "The Hakushu Distiller's Reserve Single Malt Whisky", descZh: "白州單一麥芽威士忌", vol: "15ml", glassPrice: 50, bottleVal: 680 },
+            { id: 19, country: "Japan", brand: "Tenjaku", code: "SWTENPMQTGB", descEn: "Tenjaku Japanese Pure Malt Whisky with Gift Box", descZh: "天雀日本純麥威士忌禮盒", vol: "15ml", glassPrice: 25, bottleVal: 350 },
+            { id: 20, country: "Taiwan", brand: "Kavalan", code: "SMKAVSOSCSQT", descEn: "Kavalan Solist Oloroso Sherry Single Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏Oloroso雪莉桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 75, bottleVal: 1080 },
+            { id: 21, country: "Taiwan", brand: "Kavalan", code: "SMKAVSBCSQT", descEn: "Kavalan Solist Vinho Barrique Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏VINHO酒桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 75, bottleVal: 1170 },
+            { id: 22, country: "Taiwan", brand: "Kavalan", code: "SMKAV15YOQT", descEn: "Kavalan 15YO Single Malt Whisky (2025 Edition)", descZh: "噶瑪蘭15年單一麥芽威士忌(2025版)", vol: "15ml", glassPrice: 75, bottleVal: 1180 },
+            { id: 23, country: "Australia", brand: "Starward", code: "SWSTARWATFDQT", descEn: "Starward Two Fold Double Grain Whisky Qt.", descZh: "星世Two Fold雙穀物威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 390 },
+            { id: 24, country: "France", brand: "Alfred Giraud", code: "SWALFREDHERQT", descEn: "Alfred Giraud Heritage Whisky Qt.", descZh: "阿爾弗雷德吉羅傳承系列威士忌(大號)", vol: "15ml", glassPrice: 100, bottleVal: 1350 },
+            { id: 25, country: "France", brand: "Alfred Giraud", code: "SWALFREDVOYQT", descEn: "Alfred Giraud Voyage Whisky Qt.", descZh: "阿爾弗雷德吉羅遠航系列威士忌(大號)", vol: "15ml", glassPrice: 100, bottleVal: 1650 }
+        ];
+
+        // I18N DICTIONARIES
+        const I18N = {
+            en: {
+                title: "Whisky Event Tracker",
+                accessTitle: "Event Access Required",
+                accessSubtitle: "Enter password and your name to log sales.",
+                lblPassword: "Access Password",
+                lblUserName: "Your Name / Staff ID",
+                btnLogin: "Enter System",
+                exportReport: "Export Report",
+                filterTitle: "Product Filter",
+                resetFilters: "Reset Filters",
+                lblCountry: "Country",
+                lblBrand: "Brand",
+                allCountries: "All Countries",
+                allBrands: "All Brands",
+                productList: "Product Catalog",
+                glassPrice: "Glass Price (15ml):",
+                bottlePrice: "Bottle Price:",
+                selectType: "Select Transaction Type",
+                typeGlass: "1 Glass",
+                typeBottle: "1 Bottle",
+                typeFreeGlass: "Free Glass",
+                typeFreeBottle: "Free Bottle",
+                qty: "Quantity",
+                btnConfirmSale: "Confirm Log Entry",
+                close: "Close",
+                voided: "VOIDED",
+                voidBtn: "Void Record"
+            },
+            zh: {
+                title: "威士忌活動銷量記錄系統",
+                accessTitle: "需要存取密碼",
+                accessSubtitle: "請輸入指定密碼及工作人員名字以進行點數記錄",
+                lblPassword: "存取密碼",
+                lblUserName: "使用者名字 / 員工名稱",
+                btnLogin: "進入系統",
+                exportReport: "導出 Excel 報告",
+                filterTitle: "產品目錄篩選",
+                resetFilters: "重置篩選",
+                lblCountry: "國家",
+                lblBrand: "品牌",
+                allCountries: "所有國家",
+                allBrands: "所有品牌",
+                productList: "產品清單",
+                glassPrice: "單杯金額 (15ml):",
+                bottlePrice: "整支金額:",
+                selectType: "選擇交易類型",
+                typeGlass: "賣出 1 杯",
+                typeBottle: "賣出 1 支",
+                typeFreeGlass: "贈送 1 杯",
+                typeFreeBottle: "贈送 1 支",
+                qty: "數量",
+                btnConfirmSale: "確認記錄",
+                close: "關閉",
+                voided: "已作廢/已刪除",
+                voidBtn: "作廢此筆交易"
+            }
+        };
+
+        let currentLang = 'en';
+        let currentUser = '';
+        let selectedProduct = null;
+        let activeSaleType = 'glass';
+        let selectedQty = 1;
+
+        // Active Button Filters State
+        let selectedCountryFilter = '';
+        let selectedBrandFilter = '';
+
+        // Firebase Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'whisky-event-app-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo",
+            storageBucket: "demo.appspot.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let salesRecords = []; // Realtime sales cache from Firestore
+
+        // INIT & AUTH LOGIC
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn("Auth fallback", err);
+            }
+
+            // Listen to Firestore Realtime Updates
+            const salesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales_records');
+            onSnapshot(salesColRef, (snapshot) => {
+                salesRecords = [];
+                snapshot.forEach(doc => {
+                    salesRecords.push({ id: doc.id, ...doc.data() });
+                });
+                renderProductList();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+            });
+
+            renderFilterPills();
+            renderProductList();
+            setupEventListeners();
+        });
+
+        // LANGUAGE TOGGLE
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.getElementById('btn-lang').innerText = lang === 'en' ? '繁體中文' : 'English';
+            
+            // Translate static elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (I18N[lang][key]) {
+                    el.innerText = I18N[lang][key];
+                }
+            });
+
+            renderFilterPills();
+            renderProductList();
+        }
+
+        // RENDER FILTER BUTTON PILLS (COUNTRY & BRAND)
+        function renderFilterPills() {
+            // 1. Render Country Pills
+            const countryContainer = document.getElementById('country-pills');
+            const countries = [...new Set(WHISKY_DATA.map(item => item.country))];
+
+            let countryHtml = `
+                <button type="button" onclick="selectCountryFilter('')" class="pill-btn touch-btn text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm border ${selectedCountryFilter === '' ? 'bg-red-700 text-white border-red-700 shadow-md' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}">
+                    ${I18N[currentLang].allCountries}
+                </button>
+            `;
+
+            countries.forEach(c => {
+                const isSelected = selectedCountryFilter === c;
+                countryHtml += `
+                    <button type="button" onclick="selectCountryFilter('${c}')" class="pill-btn touch-btn text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm border ${isSelected ? 'bg-red-700 text-white border-red-700 shadow-md' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}">
+                        ${c}
+                    </button>
+                `;
+            });
+            countryContainer.innerHTML = countryHtml;
+
+            // 2. Render Brand Pills
+            renderBrandPills();
+        }
+
+        function renderBrandPills() {
+            const brandContainer = document.getElementById('brand-pills');
+            
+            let filtered = WHISKY_DATA;
+            if (selectedCountryFilter) {
+                filtered = filtered.filter(item => item.country === selectedCountryFilter);
+            }
+
+            const brands = [...new Set(filtered.map(item => item.brand))];
+
+            let brandHtml = `
+                <button type="button" onclick="selectBrandFilter('')" class="pill-btn touch-btn text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm border ${selectedBrandFilter === '' ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}">
+                    ${I18N[currentLang].allBrands}
+                </button>
+            `;
+
+            brands.forEach(b => {
+                const isSelected = selectedBrandFilter === b;
+                brandHtml += `
+                    <button type="button" onclick="selectBrandFilter('${b}')" class="pill-btn touch-btn text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm border ${isSelected ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}">
+                        ${b}
+                    </button>
+                `;
+            });
+            brandContainer.innerHTML = brandHtml;
+        }
+
+        window.selectCountryFilter = function(c) {
+            selectedCountryFilter = c;
+            selectedBrandFilter = ''; // Reset brand on country change
+            renderFilterPills();
+            renderProductList();
+            toggleResetButton();
+        };
+
+        window.selectBrandFilter = function(b) {
+            selectedBrandFilter = b;
+            renderBrandPills();
+            renderProductList();
+            toggleResetButton();
+        };
+
+        // RENDER PRODUCTS WITH REALTIME AGGREGATED TOTALS
+        function renderProductList() {
+            const container = document.getElementById('product-list-container');
+            if (!container) return;
+
+            const search = document.getElementById('input-search').value.toLowerCase().trim();
+
+            const filtered = WHISKY_DATA.filter(item => {
+                if (selectedCountryFilter && item.country !== selectedCountryFilter) return false;
+                if (selectedBrandFilter && item.brand !== selectedBrandFilter) return false;
+                if (search) {
+                    const matchCode = item.code.toLowerCase().includes(search);
+                    const matchEn = item.descEn.toLowerCase().includes(search);
+                    const matchZh = item.descZh.toLowerCase().includes(search);
+                    if (!matchCode && !matchEn && !matchZh) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('product-count').innerText = `${filtered.length} items`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-slate-400 font-semibold text-sm">No matching products found.</div>`;
+                return;
+            }
+
+            // Calculate active sales for each product (filter out voided)
+            const activeLogs = salesRecords.filter(r => !r.isVoided);
+
+            container.innerHTML = filtered.map(item => {
+                // Aggregates for this item
+                const itemLogs = activeLogs.filter(r => r.code === item.code);
+                let glassCount = 0;
+                let bottleCount = 0;
+                let freeGlassCount = 0;
+                let freeBottleCount = 0;
+
+                itemLogs.forEach(l => {
+                    if (l.type === 'glass') glassCount += (l.qty || 1);
+                    if (l.type === 'bottle') bottleCount += (l.qty || 1);
+                    if (l.type === 'free_glass') freeGlassCount += (l.qty || 1);
+                    if (l.type === 'free_bottle') freeBottleCount += (l.qty || 1);
+                });
+
+                const totalVal = (glassCount * item.glassPrice) + (bottleCount * item.bottleVal);
+
+                // Language specific name displaying
+                const displayName = currentLang === 'en' ? item.descEn : item.descZh;
+
+                return `
+                    <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm hover:shadow-md flex flex-col justify-between space-y-3.5 transition">
+                        <div class="flex justify-between items-start space-x-3">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-mono font-bold bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md">
+                                        #${item.id} · ${item.code}
+                                    </span>
+                                    <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md">${item.country}</span>
+                                </div>
+                                <h3 class="text-base font-extrabold text-slate-900 mt-2 leading-snug">${displayName}</h3>
+                                
+                                <div class="flex items-center space-x-3 mt-2 text-xs font-bold">
+                                    <span class="bg-red-50 text-red-800 border border-red-100 px-2.5 py-1 rounded-lg flex items-center">
+                                        <i class="fa-solid fa-wine-glass text-red-600 mr-1.5"></i>
+                                        ${item.glassPrice > 0 ? `MOP ${item.glassPrice} / 杯` : '非賣品'}
+                                    </span>
+                                    <span class="bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center">
+                                        <i class="fa-solid fa-bottle-wine text-slate-600 mr-1.5"></i>
+                                        MOP ${item.bottleVal.toLocaleString()} / 支
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <button onclick="openHistoryModal('${item.code}')" class="text-slate-500 hover:text-red-700 p-2 touch-btn flex flex-col items-center justify-center bg-slate-50 hover:bg-red-50 rounded-xl border border-slate-200">
+                                <i class="fa-solid fa-clock-rotate-left text-base"></i>
+                                <span class="text-[10px] mt-0.5 font-bold">Log</span>
+                            </button>
+                        </div>
+
+                        <!-- Real-time Sales Counter Badges -->
+                        <div class="grid grid-cols-4 gap-2 text-center bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                <span class="block text-[10px] text-slate-500 font-bold">Glass</span>
+                                <span class="text-sm font-black text-red-600">${glassCount}</span>
+                            </div>
+                            <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                <span class="block text-[10px] text-slate-500 font-bold">Bottle</span>
+                                <span class="text-sm font-black text-emerald-600">${bottleCount}</span>
+                            </div>
+                            <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                <span class="block text-[10px] text-slate-500 font-bold">F.Glass</span>
+                                <span class="text-sm font-black text-red-500/80">${freeGlassCount}</span>
+                            </div>
+                            <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                <span class="block text-[10px] text-slate-500 font-bold">F.Bottle</span>
+                                <span class="text-sm font-black text-emerald-500/80">${freeBottleCount}</span>
+                            </div>
+                        </div>
+
+                        <!-- Price Info & Quick Action Button -->
+                        <div class="flex items-center justify-between pt-1">
+                            <div class="text-xs font-medium">
+                                <span class="text-slate-500">Accumulated Total:</span>
+                                <span class="text-red-700 font-black text-base ml-1">MOP ${totalVal.toLocaleString()}</span>
+                            </div>
+                            <button onclick="openSaleModal('${item.code}')" class="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center space-x-1.5 touch-btn">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>Log Sale</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // EVENT LISTENERS SETUP
+        function setupEventListeners() {
+            // Auth Form Submission
+            document.getElementById('form-auth').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const pass = document.getElementById('input-pass').value.trim();
+                const name = document.getElementById('input-name').value.trim();
+
+                if (pass !== '9875321') {
+                    showToast('Incorrect password / 密碼錯誤!');
+                    return;
+                }
+
+                if (!name) {
+                    showToast('Please enter your name / 請輸入名字');
+                    return;
+                }
+
+                currentUser = name;
+                document.getElementById('display-user-name').innerText = name;
+                document.getElementById('user-badge').classList.remove('hidden');
+                document.getElementById('user-badge').classList.add('flex');
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('pos-screen').classList.remove('hidden');
+                document.getElementById('btn-export').classList.remove('hidden');
+
+                showToast(`Welcome ${name}!`);
+            });
+
+            // Language Toggle
+            document.getElementById('btn-lang').addEventListener('click', () => {
+                setLanguage(currentLang === 'en' ? 'zh' : 'en');
+            });
+
+            // Search
+            document.getElementById('input-search').addEventListener('input', () => {
+                renderProductList();
+                toggleResetButton();
+            });
+
+            document.getElementById('btn-reset-filters').addEventListener('click', () => {
+                selectedCountryFilter = '';
+                selectedBrandFilter = '';
+                document.getElementById('input-search').value = '';
+                renderFilterPills();
+                renderProductList();
+                toggleResetButton();
+            });
+
+            // Export Excel
+            document.getElementById('btn-export').addEventListener('click', exportToExcel);
+        }
+
+        function toggleResetButton() {
+            const search = document.getElementById('input-search').value;
+            const resetBtn = document.getElementById('btn-reset-filters');
+
+            if (selectedCountryFilter || selectedBrandFilter || search) {
+                resetBtn.classList.remove('hidden');
+            } else {
+                resetBtn.classList.add('hidden');
+            }
+        }
+
+        // ... existing remaining code ...
