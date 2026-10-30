@@ -50,6 +50,10 @@
                     <i class="fa-solid fa-file-excel text-sm"></i>
                     <span data-i18n="exportReport">Export Report</span>
                 </button>
+                <!-- Clear Database Button -->
+                <button id="btn-clear" class="hidden bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Clear All Data">
+                    <i class="fa-solid fa-trash-can text-base"></i>
+                </button>
                 <!-- Logout Button -->
                 <button id="btn-logout" class="hidden bg-slate-100 hover:bg-red-50 hover:text-red-600 border border-slate-300 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Logout">
                     <i class="fa-solid fa-right-from-bracket text-base"></i>
@@ -238,7 +242,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // APP DATA MATRIX FROM PROVIDED REFERENCE TABLE
         const WHISKY_DATA = [
@@ -373,7 +377,6 @@
             document.addEventListener('touchend', function (event) {
                 const now = (new Date()).getTime();
                 if (now - lastTouchEnd <= 300) {
-                    // 如果兩次觸摸間隔小於 300ms，阻止預設放大
                     event.preventDefault();
                 }
                 lastTouchEnd = now;
@@ -382,7 +385,7 @@
 
         // INIT & AUTH LOGIC
         window.addEventListener('DOMContentLoaded', async () => {
-            preventDoubleTapZoom(); // 初始化防雙擊放大保護
+            preventDoubleTapZoom();
 
             // Check stored session
             const savedUser = localStorage.getItem(STORAGE_KEY_USER);
@@ -440,6 +443,7 @@
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('pos-screen').classList.remove('hidden');
             document.getElementById('btn-export').classList.remove('hidden');
+            document.getElementById('btn-clear').classList.remove('hidden');
             document.getElementById('btn-logout').classList.remove('hidden');
         }
 
@@ -453,10 +457,46 @@
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('pos-screen').classList.add('hidden');
             document.getElementById('btn-export').classList.add('hidden');
+            document.getElementById('btn-clear').classList.add('hidden');
             document.getElementById('btn-logout').classList.add('hidden');
 
             document.getElementById('input-pass').value = '';
             showToast('Logged out successfully / 已成功登出');
+        }
+
+        // CLEAR ALL RECORDS FUNCTIONALITY
+        async function handleClearAllData() {
+            const enteredPass = prompt('請輸入清除記錄密碼 / Enter clear password:');
+            if (enteredPass === null) return; // 點擊取消
+
+            if (enteredPass.trim() !== '1235789') {
+                showToast('密碼錯誤，無法清除 / Incorrect password!');
+                return;
+            }
+
+            const doubleConfirm = confirm('⚠️ 警告：這將會永久刪除所有銷售記錄及作廢記錄，且無法復原！\n確定要全部清除嗎？');
+            if (!doubleConfirm) return;
+
+            try {
+                if (isFirebaseConnected && db) {
+                    const salesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales_records');
+                    const snapshot = await getDocs(salesColRef);
+                    
+                    // 批量刪除雲端所有記錄
+                    const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sales_records', document.id)));
+                    await Promise.all(deletePromises);
+                }
+
+                // 同步清除本地快取
+                salesRecords = [];
+                saveLocalSalesFallback();
+                renderProductList();
+
+                showToast('所有記錄已成功清除 / All records cleared!');
+            } catch (err) {
+                console.error("Error clearing records:", err);
+                showToast('清除記錄失敗 / Failed to clear records.');
+            }
         }
 
         function loadLocalSalesFallback() {
@@ -699,6 +739,10 @@
 
             document.getElementById('btn-logout').addEventListener('click', () => {
                 handleLogout();
+            });
+
+            document.getElementById('btn-clear').addEventListener('click', () => {
+                handleClearAllData();
             });
 
             document.getElementById('btn-lang').addEventListener('click', () => {
