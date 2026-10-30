@@ -11,6 +11,10 @@
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        /* 禁止整個頁面的 touch 縮放/雙擊放大，同時保持滾動能力 */
+        html, body, button, input, div {
+            touch-action: manipulation;
+        }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .touch-btn { min-height: 48px; min-width: 48px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -45,6 +49,10 @@
                 <button id="btn-export" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md touch-btn">
                     <i class="fa-solid fa-file-excel text-sm"></i>
                     <span data-i18n="exportReport">Export Report</span>
+                </button>
+                <!-- Logout Button -->
+                <button id="btn-logout" class="hidden bg-slate-100 hover:bg-red-50 hover:text-red-600 border border-slate-300 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket text-base"></i>
                 </button>
             </div>
         </header>
@@ -359,18 +367,28 @@
             setTimeout(() => { toast.classList.add('hidden'); }, 3000);
         }
 
-// INIT & AUTH LOGIC
+        // PREVENT DOUBLE-TAP ZOOM FOR MOBILE DEVICES
+        function preventDoubleTapZoom() {
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    // 如果兩次觸摸間隔小於 300ms，阻止預設放大
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        }
+
+        // INIT & AUTH LOGIC
         window.addEventListener('DOMContentLoaded', async () => {
+            preventDoubleTapZoom(); // 初始化防雙擊放大保護
+
             // Check stored session
             const savedUser = localStorage.getItem(STORAGE_KEY_USER);
             if (savedUser) {
                 currentUser = savedUser;
-                document.getElementById('display-user-name').innerText = currentUser;
-                document.getElementById('user-badge').classList.remove('hidden');
-                document.getElementById('user-badge').classList.add('flex');
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('pos-screen').classList.remove('hidden');
-                document.getElementById('btn-export').classList.remove('hidden');
+                showMainInterface();
             }
 
             // Initialize Firebase with fallback
@@ -382,7 +400,6 @@
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    // 嘗試匿名登入，若 Firebase 未開啟 Anonymous 登入則捕捉錯誤並切換為離線模式
                     try {
                         await signInAnonymously(auth);
                     } catch (authErr) {
@@ -415,6 +432,32 @@
             renderProductList();
             setupEventListeners();
         });	
+
+        function showMainInterface() {
+            document.getElementById('display-user-name').innerText = currentUser;
+            document.getElementById('user-badge').classList.remove('hidden');
+            document.getElementById('user-badge').classList.add('flex');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('pos-screen').classList.remove('hidden');
+            document.getElementById('btn-export').classList.remove('hidden');
+            document.getElementById('btn-logout').classList.remove('hidden');
+        }
+
+        function handleLogout() {
+            currentUser = '';
+            localStorage.removeItem(STORAGE_KEY_USER);
+            
+            document.getElementById('display-user-name').innerText = '';
+            document.getElementById('user-badge').classList.add('hidden');
+            document.getElementById('user-badge').classList.remove('flex');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('pos-screen').classList.add('hidden');
+            document.getElementById('btn-export').classList.add('hidden');
+            document.getElementById('btn-logout').classList.add('hidden');
+
+            document.getElementById('input-pass').value = '';
+            showToast('Logged out successfully / 已成功登出');
+        }
 
         function loadLocalSalesFallback() {
             try {
@@ -650,14 +693,12 @@
                 currentUser = name;
                 localStorage.setItem(STORAGE_KEY_USER, name);
 
-                document.getElementById('display-user-name').innerText = name;
-                document.getElementById('user-badge').classList.remove('hidden');
-                document.getElementById('user-badge').classList.add('flex');
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('pos-screen').classList.remove('hidden');
-                document.getElementById('btn-export').classList.remove('hidden');
-
+                showMainInterface();
                 showToast(`Welcome ${name}!`);
+            });
+
+            document.getElementById('btn-logout').addEventListener('click', () => {
+                handleLogout();
             });
 
             document.getElementById('btn-lang').addEventListener('click', () => {
