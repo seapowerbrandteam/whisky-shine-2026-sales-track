@@ -41,21 +41,20 @@
             </div>
 
             <div class="flex items-center space-x-2">
-                <!-- Language Selector -->
+                <!-- Language Selector (Requirement 2) -->
                 <button id="btn-lang" class="bg-red-50 hover:bg-red-100 border border-red-300 px-3.5 py-2 rounded-xl text-xs font-bold text-red-700 transition touch-btn flex items-center shadow-sm">
-                    繁體中文
+                    繁中
                 </button>
-                <!-- Export Excel Button -->
-                <button id="btn-export" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md touch-btn">
-                    <i class="fa-solid fa-file-excel text-sm"></i>
-                    <span data-i18n="exportReport">Export Report</span>
+                <!-- Export Excel Button (Requirement 3: Icon only) -->
+                <button id="btn-export" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white w-10 h-10 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md touch-btn" title="Export Report">
+                    <i class="fa-solid fa-file-excel text-base"></i>
                 </button>
                 <!-- Clear Database Button -->
-                <button id="btn-clear" class="hidden bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Clear All Data">
+                <button id="btn-clear" class="hidden bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 w-10 h-10 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Clear All Data">
                     <i class="fa-solid fa-trash-can text-base"></i>
                 </button>
                 <!-- Logout Button -->
-                <button id="btn-logout" class="hidden bg-slate-100 hover:bg-red-50 hover:text-red-600 border border-slate-300 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Logout">
+                <button id="btn-logout" class="hidden bg-slate-100 hover:bg-red-50 hover:text-red-600 border border-slate-300 text-slate-600 w-10 h-10 rounded-xl text-xs font-bold transition flex items-center justify-center touch-btn shadow-sm" title="Logout">
                     <i class="fa-solid fa-right-from-bracket text-base"></i>
                 </button>
             </div>
@@ -137,9 +136,9 @@
         </main>
     </div>
 
-    <!-- MODAL 1: RECORD TRANSACTION MODAL -->
-    <div id="modal-sale" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white border border-slate-200 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-200">
+    <!-- MODAL 1: RECORD TRANSACTION MODAL (Requirement 1: Click outside to close) -->
+    <div id="modal-sale" onclick="closeSaleModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div onclick="event.stopPropagation()" class="bg-white border border-slate-200 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-200">
             <div class="flex justify-between items-start border-b border-slate-100 pb-3.5">
                 <div>
                     <span id="modal-sale-code" class="text-xs font-mono font-bold bg-red-100 text-red-800 px-2.5 py-1 rounded-md border border-red-200">CODE</span>
@@ -206,9 +205,9 @@
         </div>
     </div>
 
-    <!-- MODAL 2: ITEM LOG & VOID MANAGEMENT -->
-    <div id="modal-history" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white border border-slate-200 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[85vh] flex flex-col space-y-4">
+    <!-- MODAL 2: ITEM LOG & VOID MANAGEMENT (Requirement 1: Click outside to close) -->
+    <div id="modal-history" onclick="closeHistoryModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div onclick="event.stopPropagation()" class="bg-white border border-slate-200 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[85vh] flex flex-col space-y-4">
             <div class="flex justify-between items-start border-b border-slate-100 pb-3.5">
                 <div>
                     <h3 id="modal-hist-title" class="text-lg font-bold text-slate-900">Item Sales Log</h3>
@@ -288,7 +287,6 @@
                 lblPassword: "Access Password",
                 lblUserName: "Your Name / Staff ID",
                 btnLogin: "Enter System",
-                exportReport: "Export Report",
                 filterTitle: "Product Filter",
                 resetFilters: "Reset Filters",
                 lblCountry: "Country",
@@ -316,7 +314,6 @@
                 lblPassword: "存取密碼",
                 lblUserName: "使用者名字 / 員工名稱",
                 btnLogin: "進入系統",
-                exportReport: "導出 Excel 報告",
                 filterTitle: "產品目錄篩選",
                 resetFilters: "重置篩選",
                 lblCountry: "國家",
@@ -473,7 +470,7 @@
         // CLEAR ALL RECORDS FUNCTIONALITY
         async function handleClearAllData() {
             const enteredPass = prompt('請輸入清除記錄密碼 / Enter clear password:');
-            if (enteredPass === null) return; // 點擊取消
+            if (enteredPass === null) return;
 
             if (enteredPass.trim() !== '1235789') {
                 showToast('密碼錯誤，無法清除 / Incorrect password!');
@@ -488,12 +485,10 @@
                     const salesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales_records');
                     const snapshot = await getDocs(salesColRef);
                     
-                    // 批量刪除雲端所有記錄
                     const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sales_records', document.id)));
                     await Promise.all(deletePromises);
                 }
 
-                // 同步清除本地快取
                 salesRecords = [];
                 saveLocalSalesFallback();
                 renderProductList();
@@ -523,10 +518,10 @@
             }
         }
 
-        // LANGUAGE TOGGLE
+        // LANGUAGE TOGGLE (Requirement 2: EN / 繁中)
         function setLanguage(lang) {
             currentLang = lang;
-            document.getElementById('btn-lang').innerText = lang === 'en' ? '繁體中文' : 'English';
+            document.getElementById('btn-lang').innerText = lang === 'en' ? '繁中' : 'EN';
             
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
@@ -650,7 +645,6 @@
 
                 const totalVal = (glassCount * item.glassPrice) + (bottleCount * item.bottleVal);
 
-                // Language specific name displaying
                 const displayName = currentLang === 'en' ? item.descEn : item.descZh;
 
                 return `
