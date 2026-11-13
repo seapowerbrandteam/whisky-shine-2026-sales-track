@@ -244,33 +244,39 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // APP DATA MATRIX FROM PROVIDED REFERENCE TABLE
+        // APP DATA MATRIX FROM PROVIDED REFERENCE TABLE (31 Items)
         const WHISKY_DATA = [
-            { id: 1, country: "Scotland", brand: "Auchentoshan", code: "SWAUCTWQT", descEn: "Auchentoshan Three Wood Single Malt Whisky", descZh: "歐肯特軒三桶單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 470 },
-            { id: 2, country: "Scotland", brand: "Auchentoshan", code: "SWAUC12QT", descEn: "Auchentoshan 12 Year Old Single Malt Whisky", descZh: "歐肯特軒12年單一麥芽威士忌", vol: "15ml", glassPrice: 20, bottleVal: 370 },
-            { id: 3, country: "Scotland", brand: "Auchentoshan", code: "SMAUC18QT", descEn: "Auchentoshan 18 Year Old Single Malt Whisky", descZh: "歐肯特軒18年單一麥芽威士忌", vol: "15ml", glassPrice: 50, bottleVal: 970 },
-            { id: 4, country: "Scotland", brand: "Benriach", code: "SWBTOTS10YOQT", descEn: "Benriach The Original Ten 10YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克10年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
-            { id: 5, country: "Scotland", brand: "Benriach", code: "SWBTSTSQT", descEn: "Benriach The Smoky Ten Speyside 10YO Single Malt Scotch Whisky (Qt.)", descZh: "班瑞克10年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
-            { id: 6, country: "Scotland", brand: "Benriach", code: "SWBTST12YOQT", descEn: "Benriach The Smoky Twelve 12YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克12年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 30, bottleVal: 520 },
-            { id: 7, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR18QT", descEn: "Glen Grant 18 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠18年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 40, bottleVal: 710 },
-            { id: 8, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR21QT", descEn: "Glen Grant 21 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠21年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 95, bottleVal: 1760 },
-            { id: 9, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR801602QT-06", descEn: "Glen Grant Private Cask (Macau 24 Limited Edition) Qt.", descZh: "格蘭冠2006年原桶單一麥芽威士忌80160-澳門2024特別版 (大號)", vol: "15ml", glassPrice: 90, bottleVal: 1650 },
-            { id: 10, country: "Scotland", brand: "Glenfarclas", code: "SMGLE25QTXX", descEn: "Glenfarclas 25 Year Old Single Malt Whisky", descZh: "格蘭花格25年單一麥芽威士忌", vol: "15ml", glassPrice: 85, bottleVal: 1540 },
-            { id: 11, country: "Japan", brand: "Nikka", code: "SWNIKFBHL", descEn: "Nikka From the Barrel Whisky", descZh: "日果Nikka From the Barrel威士忌", vol: "15ml", glassPrice: 15, bottleVal: 300 },
-            { id: 12, country: "Japan", brand: "Taketsuru", code: "SMTAKPMQT", descEn: "Taketsuru Pure Malt Whisky", descZh: "竹鶴純麥威士忌", vol: "15ml", glassPrice: 25, bottleVal: 480 },
-            { id: 13, country: "Japan", brand: "Yoichi", code: "SMYOISMQT", descEn: "Yoichi Single Malt Whisky", descZh: "余市單一麥芽威士忌", vol: "15ml", glassPrice: 30, bottleVal: 520 },
-            { id: 14, country: "Japan", brand: "Yoichi", code: "SMYOI10QT", descEn: "Yoichi 10 Year Old Single Malt Whisky", descZh: "余市10年單一麥芽威士忌", vol: "15ml", glassPrice: 45, bottleVal: 810 },
-            { id: 15, country: "Japan", brand: "Miyagikyo", code: "SMMIYSMQT", descEn: "Miyagikyo Single Malt Whisky", descZh: "宮城峽單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 480 },
-            { id: 16, country: "Japan", brand: "Hibiki", code: "SWHIBABW100QT", descEn: "Hibiki Anniversary Blend Whisky (100th Anniversary)", descZh: "響週年紀念調和威士忌(100週年)", vol: "15ml", glassPrice: 0, bottleVal: 5830 },
-            { id: 17, country: "Japan", brand: "Hibiki", code: "SWHIBIJHQT", descEn: "Hibiki Japanese Harmony Whisky", descZh: "響日本和諧威士忌", vol: "15ml", glassPrice: 40, bottleVal: 780 },
-            { id: 18, country: "Japan", brand: "Hakushu", code: "SWHAKDRQT", descEn: "The Hakushu Distiller's Reserve Single Malt Whisky", descZh: "白州單一麥芽威士忌", vol: "15ml", glassPrice: 40, bottleVal: 780 },
-            { id: 19, country: "Japan", brand: "Tenjaku", code: "SWTENPMQTGB", descEn: "Tenjaku Japanese Pure Malt Whisky with Gift Box", descZh: "天雀日本純麥威士忌禮盒", vol: "15ml", glassPrice: 20, bottleVal: 400 },
-            { id: 20, country: "Taiwan", brand: "Kavalan", code: "SMKAVSOSCSQT", descEn: "Kavalan Solist Oloroso Sherry Single Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏Oloroso雪莉桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 65, bottleVal: 1190 },
-            { id: 21, country: "Taiwan", brand: "Kavalan", code: "SMKAVSBCSQT", descEn: "Kavalan Solist Vinho Barrique Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏VINHO酒桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 70, bottleVal: 1290 },
-            { id: 22, country: "Taiwan", brand: "Kavalan", code: "SMKAV15YOQT", descEn: "Kavalan 15YO Single Malt Whisky (2025 Edition)", descZh: "噶瑪蘭15年單一麥芽威士忌(2025版)", vol: "15ml", glassPrice: 70, bottleVal: 1300 },
-            { id: 23, country: "Australia", brand: "Starward", code: "SWSTARWATFDQT", descEn: "Starward Two Fold Double Grain Whisky Qt.", descZh: "星世Two Fold雙穀物威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
-            { id: 24, country: "France", brand: "Alfred Giraud", code: "SWALFREDHERQT", descEn: "Alfred Giraud Heritage Whisky Qt.", descZh: "阿爾弗雷德吉羅傳承系列威士忌(大號)", vol: "15ml", glassPrice: 80, bottleVal: 1490 },
-            { id: 25, country: "France", brand: "Alfred Giraud", code: "SWALFREDVOYQT", descEn: "Alfred Giraud Voyage Whisky Qt.", descZh: "阿爾弗雷德吉羅遠航系列威士忌(大號)", vol: "15ml", glassPrice: 100, bottleVal: 1820 }
+            { id: 1, country: "Scotland", brand: "The Aberlour", code: "SMTHEABER12QT", descEn: "The Aberlour 12 Year Old Single Malt Scotch Whisky", descZh: "亞伯樂12年單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 20, bottleVal: 430 },
+            { id: 2, country: "Scotland", brand: "The Aberlour", code: "SMTHEABER16QT", descEn: "The Aberlour 16 Year Old Single Malt Scotch Whisky", descZh: "亞伯樂16年單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 40, bottleVal: 750 },
+            { id: 3, country: "Scotland", brand: "The Aberlour", code: "SMTHEABER18QT", descEn: "The Aberlour 18 Year Old Single Malt Scotch Whisky", descZh: "亞伯樂18年單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 60, bottleVal: 1080 },
+            { id: 4, country: "Scotland", brand: "The Aberlour", code: "SMTHEABERABQT", descEn: "The Aberlour A'Bunadh Single Malt Scotch Whisky", descZh: "亞伯樂首選原桶單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 50, bottleVal: 935 },
+            { id: 5, country: "Scotland", brand: "Auchentoshan", code: "SWAUCTWQT", descEn: "Auchentoshan Three Wood Single Malt Whisky", descZh: "歐肯特軒三桶單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 470 },
+            { id: 6, country: "Scotland", brand: "Auchentoshan", code: "SWAUC12QT", descEn: "Auchentoshan 12 Year Old Single Malt Whisky", descZh: "歐肯特軒12年單一麥芽威士忌", vol: "15ml", glassPrice: 20, bottleVal: 370 },
+            { id: 7, country: "Scotland", brand: "Auchentoshan", code: "SMAUC18QT", descEn: "Auchentoshan 18 Year Old Single Malt Whisky", descZh: "歐肯特軒18年單一麥芽威士忌", vol: "15ml", glassPrice: 50, bottleVal: 970 },
+            { id: 8, country: "Scotland", brand: "Benriach", code: "SWBTOTS10YOQT", descEn: "Benriach The Original Ten 10YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克10年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
+            { id: 9, country: "Scotland", brand: "Benriach", code: "SWBTSTSQT", descEn: "Benriach The Smoky Ten Speyside 10YO Single Malt Scotch Whisky (Qt.)", descZh: "班瑞克10年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
+            { id: 10, country: "Scotland", brand: "Benriach", code: "SWBTST12YOQT", descEn: "Benriach The Smoky Twelve 12YO Speyside Single Malt Whisky (Qt.)", descZh: "班瑞克12年泥煤單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 30, bottleVal: 520 },
+            { id: 11, country: "Scotland", brand: "Caperdonich", code: "SWCPDN18QT", descEn: "Caperdonich 18 Y.O. Scotch Whisky", descZh: "凱普多尼18年單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 65, bottleVal: 1210 },
+            { id: 12, country: "Scotland", brand: "Caperdonich", code: "SWCPDN21QT", descEn: "Caperdonich 21 Y.O. Scotch Whisky", descZh: "凱普多尼21年單一麥芽蘇格蘭威士忌", vol: "15ml", glassPrice: 135, bottleVal: 2480 },
+            { id: 13, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR18QT", descEn: "Glen Grant 18 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠18年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 40, bottleVal: 710 },
+            { id: 14, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR21QT", descEn: "Glen Grant 21 Year Old Single Malt Whisky Qt.", descZh: "格蘭冠21年單一麥芽威士忌(大號)", vol: "15ml", glassPrice: 95, bottleVal: 1760 },
+            { id: 15, country: "Scotland", brand: "Glen Grant", code: "SMGLENGR801602QT-06", descEn: "Glen Grant Private Cask (Macau 24 Limited Edition) Qt.", descZh: "格蘭冠2006年原桶單一麥芽威士忌80160-澳門2024特別版 (大號)", vol: "15ml", glassPrice: 90, bottleVal: 1650 },
+            { id: 16, country: "Scotland", brand: "Glenfarclas", code: "SMGLE25QTXX", descEn: "Glenfarclas 25 Year Old Single Malt Whisky", descZh: "格蘭花格25年單一麥芽威士忌", vol: "15ml", glassPrice: 85, bottleVal: 1540 },
+            { id: 17, country: "Japan", brand: "Nikka", code: "SWNIKFBHL", descEn: "Nikka From the Barrel Whisky", descZh: "日果Nikka From the Barrel威士忌", vol: "15ml", glassPrice: 15, bottleVal: 300 },
+            { id: 18, country: "Japan", brand: "Taketsuru", code: "SMTAKPMQT", descEn: "Taketsuru Pure Malt Whisky", descZh: "竹鶴純麥威士忌", vol: "15ml", glassPrice: 25, bottleVal: 480 },
+            { id: 19, country: "Japan", brand: "Yoichi", code: "SMYOISMQT", descEn: "Yoichi Single Malt Whisky", descZh: "余市單一麥芽威士忌", vol: "15ml", glassPrice: 30, bottleVal: 520 },
+            { id: 20, country: "Japan", brand: "Yoichi", code: "SMYOI10QT", descEn: "Yoichi 10 Year Old Single Malt Whisky", descZh: "余市10年單一麥芽威士忌", vol: "15ml", glassPrice: 45, bottleVal: 810 },
+            { id: 21, country: "Japan", brand: "Miyagikyo", code: "SMMIYSMQT", descEn: "Miyagikyo Single Malt Whisky", descZh: "宮城峽單一麥芽威士忌", vol: "15ml", glassPrice: 25, bottleVal: 480 },
+            { id: 22, country: "Japan", brand: "Hibiki", code: "SWHIBABW100QT", descEn: "Hibiki Anniversary Blend Whisky (100th Anniversary)", descZh: "響週年紀念調和威士忌(100週年)", vol: "15ml", glassPrice: 0, bottleVal: 5830 },
+            { id: 23, country: "Japan", brand: "Hibiki", code: "SWHIBIJHQT", descEn: "Hibiki Japanese Harmony Whisky", descZh: "響日本和諧威士忌", vol: "15ml", glassPrice: 40, bottleVal: 780 },
+            { id: 24, country: "Japan", brand: "Hakushu", code: "SWHAKDRQT", descEn: "The Hakushu Distiller's Reserve Single Malt Whisky", descZh: "白州單一麥芽威士忌", vol: "15ml", glassPrice: 40, bottleVal: 780 },
+            { id: 25, country: "Japan", brand: "Tenjaku", code: "SWTENPMQTGB", descEn: "Tenjaku Japanese Pure Malt Whisky with Gift Box", descZh: "天雀日本純麥威士忌禮盒", vol: "15ml", glassPrice: 20, bottleVal: 400 },
+            { id: 26, country: "Taiwan", brand: "Kavalan", code: "SMKAVSOSCSQT", descEn: "Kavalan Solist Oloroso Sherry Single Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏Oloroso雪莉桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 65, bottleVal: 1190 },
+            { id: 27, country: "Taiwan", brand: "Kavalan", code: "SMKAVSBCSQT", descEn: "Kavalan Solist Vinho Barrique Cask Strength Single Malt Whisky", descZh: "噶瑪蘭經典獨奏VINHO酒桶原酒單一麥芽威士忌", vol: "15ml", glassPrice: 70, bottleVal: 1290 },
+            { id: 28, country: "Taiwan", brand: "Kavalan", code: "SMKAV15YOQT", descEn: "Kavalan 15YO Single Malt Whisky (2025 Edition)", descZh: "噶瑪蘭15年單一麥芽威士忌(2025版)", vol: "15ml", glassPrice: 70, bottleVal: 1300 },
+            { id: 29, country: "Australia", brand: "Starward", code: "SWSTARWATFDQT", descEn: "Starward Two Fold Double Grain Whisky Qt.", descZh: "星世Two Fold雙穀物威士忌(大號)", vol: "15ml", glassPrice: 25, bottleVal: 450 },
+            { id: 30, country: "France", brand: "Alfred Giraud", code: "SWALFREDHERQT", descEn: "Alfred Giraud Heritage Whisky Qt.", descZh: "阿爾弗雷德吉羅傳承系列威士忌(大號)", vol: "15ml", glassPrice: 80, bottleVal: 1490 },
+            { id: 31, country: "France", brand: "Alfred Giraud", code: "SWALFREDVOYQT", descEn: "Alfred Giraud Voyage Whisky Qt.", descZh: "阿爾弗雷德吉羅遠航系列威士忌(大號)", vol: "15ml", glassPrice: 100, bottleVal: 1820 }
         ];
 
         // I18N DICTIONARIES
@@ -408,24 +414,24 @@
                     } catch (authErr) {
                         console.warn("Firebase Anonymous Auth is disabled or restricted. Falling back to local mode.", authErr);
                         loadLocalSalesFallback();
-                        renderFilterPills();
-                        return;
                     }
                 }
 
-                // Listen to Firestore Realtime Updates
-                const salesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales_records');
-                onSnapshot(salesColRef, (snapshot) => {
-                    salesRecords = [];
-                    snapshot.forEach(doc => {
-                        salesRecords.push({ id: doc.id, ...doc.data() });
+                if (db) {
+                    // Listen to Firestore Realtime Updates
+                    const salesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'sales_records');
+                    onSnapshot(salesColRef, (snapshot) => {
+                        salesRecords = [];
+                        snapshot.forEach(doc => {
+                            salesRecords.push({ id: doc.id, ...doc.data() });
+                        });
+                        isFirebaseConnected = true;
+                        renderProductList();
+                    }, (error) => {
+                        console.warn("Firestore listener error, using fallback state:", error);
+                        loadLocalSalesFallback();
                     });
-                    isFirebaseConnected = true;
-                    renderProductList();
-                }, (error) => {
-                    console.warn("Firestore listener error, using fallback state:", error);
-                    loadLocalSalesFallback();
-                });
+                }
             } catch (err) {
                 console.warn("Firebase initialization skipped/failed. Running offline mode:", err);
                 loadLocalSalesFallback();
